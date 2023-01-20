@@ -1,126 +1,110 @@
 import express from "express";
 
+import dotenv from "dotenv";
+
 const app = express();
+app.use(express.json());
+dotenv.config();
 
-app.get("/", (req, res) => {
-  res.send("Hello");
-});
 
-// Creating a Room
+// const rooms=[{
+//     "customer_name":"",
+//     "room_name":"A1",
+//     "no_of_seats":4,
+//     "booked_status":"NO",
+//     "date":"",
+//     "start_time":"",
+//     "end_time" :"",
+//     "room_id":1
+//  },
+//  {
+//      "customer_name":"",
+//      "room_name":"A2",
+//      "no_of_seats":4,
+//      "booked_status":"NO",
+//      "date":"",
+//      "start_time":"",
+//      "end_time" :"",
+//      "room_id":2
+//   },
+//   {
+//      "customer_name":"",
+//      "room_name":"A3",
+//      "no_of_seats":4,
+//      "booked_status":"NO",
+//      "date":"",
+//      "start_time":"",
+//      "end_time" :"",
+//      "room_id":3
+//   },
+//   {
+//      "customer_name":"",
+//      "room_name":"A4",
+//      "no_of_seats":4,
+//      "booked_status":"NO",
+//      "date":"",
+//      "start_time":"",
+//      "end_time" :"",
+//      "room_id":4
+//   }
+//  ];
 
-app.get("/rooms", (req, res) => {
-  res.send(rooms);
-});
+// console.log(rooms.length);
 
-app.post("/rooms", (req, res) => {
-  const { name, noOfSeats, amenities, priceForAnHour } = req.body;
-  let roomExists = false;
-  //   Checking if the room already exists
-  rooms.forEach((room) => {
-    if (room.name === name) roomExists = true;
-  });
-  if (!roomExists) {
-    const newRoom = {
-      id: rooms.length + 1,
-      name,
-      noOfSeats,
-      amenities,
-      priceForAnHour,
-      timeSlots: {
-        slot1: { time: "7.00 a.m - 9.00 a.m" },
-        slot2: { time: "9.00 a.m - 11.00 a.m" },
-        slot3: { time: "11.00 a.m - 1.00 p.m" },
-        slot4: { time: "2.00 p.m - 4.00 p.m" },
-        slot5: { time: "4.00 p.m - 6.00 p.m" },
-      },
-      bookings: {},
-    };
-    rooms.push(newRoom);
-    res.send("New room added");
-  } else res.status(400).send("A room with this name already exists...");
-});
+const PORT=process.env.PORT;
+const rooms = [];
 
-// Booking a room
+app.post("/createroom", function (req, res) {
 
-app.post("/bookings", (req, res) => {
-  const { roomID, customerName, date, timeSlot } = req.body;
-  let selectedRoom = rooms[roomID - 1];
-  let roomName = selectedRoom.name;
-  // Checking if the room exists or not
-  if (roomName === "")
-    res
-      .status(400)
-      .send(
-        "No room exists with the provided room ID. Please enter the correct room ID."
-      );
-  else {
-    if (selectedRoom.bookings[date]) {
-      // Checking if the timeslot exists or not
-      if (selectedRoom.bookings[date][timeSlot]) {
-        res
-          .status(400)
-          .send(
-            "The selected timeslot is not available for the selected date. Please choose another date or another Timeslot"
-          );
-      } else {
-        selectedRoom.bookings[date][timeSlot] = {
-          customerName,
-          time: selectedRoom.timeSlots.timeSlot,
-          bookedStatus: "Booked",
-        };
-        if (customers[customerName]) {
-          customers[customerName].push({
-            roomName,
-            date,
-            timeSlot: selectedRoom.timeSlots[timeSlot].time,
-            status: "Booked",
-          });
-        } else {
-          customers[customerName] = [
-            {
-              roomName,
-              date,
-              timeSlot: selectedRoom.timeSlots[timeSlot].time,
-              status: "Booked",
-            },
-          ];
-        }
-        res.send("Room Booked successfully");
-      }
+    req.body.id = rooms.length + 1;
+    req.body.booking_status = false;
+    let data = req.body;
+    rooms.push(data);
+    console.log(data);
+    res.send(data);
+
+})
+app.post("/bookingroom/:id", function (req, res) {
+    let data = req.body;
+    let { id } = req.params;
+    id = id - 1;
+
+    if (rooms[id].booking_status === false) {
+        let { customer_name, Date, Start_Time, End_Time } = data;
+        rooms[id].customer_name = customer_name;
+        rooms[id].Date = Date;
+        rooms[id].Start_Time = Start_Time;
+        rooms[id].End_Time = End_Time;
+        rooms[id].booking_status = true;
+        console.log(rooms);
+        res.send("your room is booked");
     } else {
-      selectedRoom.bookings[date] = {
-        [timeSlot]: { customerName, bookedStatus: "Booked" },
-      };
-
-      if (customers[customerName]) {
-        customers[customerName].push({
-          roomName,
-          date,
-          timeSlot: selectedRoom.timeSlots[timeSlot].time,
-          status: "Booked",
-        });
-      } else {
-        customers[customerName] = [
-          {
-            roomName,
-            date,
-            timeSlot: selectedRoom.timeSlots[timeSlot].time,
-            status: "Booked",
-          },
-        ];
-      }
-      res.send("Room Booked successfully");
+        res.send("This room is already booked")
     }
-  }
+
+
 });
 
-//Listing all the customers
 
-app.get("/customers", (req, res) => {
-  res.send(customers);
-});
+app.get("/allrooms", function (req, res) {
+    res.send(rooms.map(room => room));
+})
 
-const PORT = process.env.PORT || 8000;
-app.listen(PORT, () => {
-  console.log(`Server listening on ${PORT}`);
-});
+app.get("/allcustomers", function (req, res) {
+    const customers = rooms.filter(room => room.booking_status == true);
+    console.log(customers);
+    const filteredcustomers = customers.map((customer) => {
+        return {
+            name: customer.customer_name,
+            room_name: customer.room_name,
+            date: customer.date,
+            start_time: customer.Start_Time,
+            end_time: customer.End_Time
+        }
+    }
+    )
+    res.send(filteredcustomers)
+})
+
+
+app.listen(PORT, () => console.log("Server started"));
